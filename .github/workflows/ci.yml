@@ -63,8 +63,10 @@ jobs:
         if: github.event_name == 'push' && always()
         continue-on-error: true
         run: |
-          git fetch origin gh-pages --depth=1 2>/dev/null && \
-          git worktree add gh-pages gh-pages || \
+          git clone --depth=1 --branch gh-pages \
+            https://github.com/${{ github.repository }}.git gh-pages-clone 2>/dev/null && \
+          rm -rf gh-pages-clone/.git && \
+          mv gh-pages-clone gh-pages || \
           mkdir -p gh-pages
 
       - name: Generate Allure report
@@ -74,6 +76,12 @@ jobs:
           allure_results: target/allure-results
           allure_history: allure-history
           gh_pages: gh-pages
+
+      # The worktree used to load history can leave .git metadata inside
+      # allure-history/, which breaks the next step's git operations.
+      - name: Clean up leftover .git metadata
+        if: github.event_name == 'push' && always()
+        run: rm -rf allure-history/.git
 
       - name: Publish Allure report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
