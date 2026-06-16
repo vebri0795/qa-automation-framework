@@ -1,0 +1,7 @@
+"BROKEN","EPIC","FAILED","FEATURE","PASSED","SKIPPED","STORY","UNKNOWN"
+"0","User Data Platform","0","Posts API","5","0","Get a post by id","0"
+"0","User Data Platform","0","Login Page","1","0","Log in with invalid credentials","0"
+"0","User Data Platform","0","Posts API","3","0","Create a new post","0"
+"0","User Data Platform","0","Users Database","2","0","Find a user by username","0"
+"0","User Data Platform","0","Login Page","1","0","Log in with valid credentials","0"
+"0","User Data Platform","0","Users Database","1","0","Count active users","0"
