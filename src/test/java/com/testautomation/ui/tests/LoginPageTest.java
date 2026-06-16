@@ -36,7 +36,7 @@ class LoginPageTest extends BaseUiTest {
         loginPage.login("tomsmith", "SuperSecretPassword!");
 
         loginPage.flashMessage().shouldBe(visible);
-        loginPage.flashMessage().shouldHave(text("Fail"));
+        loginPage.flashMessage().shouldHave(text("You logged into a secure area"));
     }
 
     @Test
