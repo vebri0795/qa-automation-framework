@@ -59,6 +59,14 @@ jobs:
       - name: Run tests
         run: mvn clean test
 
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run k6 load test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: k6/smoke-test.js
+
       - name: Load Allure report history
         if: github.event_name == 'push' && always()
         continue-on-error: true

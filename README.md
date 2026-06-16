@@ -1,14 +1,15 @@
 # QA Automation Framework
 
-A Java test automation portfolio project covering **API**, **UI**, and
-**database** testing, with rich reporting via Allure and a CI pipeline that
-runs everything automatically on every push.
+A Java test automation portfolio project covering **API**, **UI**,
+**database**, and **load** testing, with rich reporting via Allure and a CI
+pipeline that runs everything automatically on every push.
 
 It tests these targets:
 
 - **API**: [JSONPlaceholder](https://jsonplaceholder.typicode.com) (fake REST API for `/posts`)
 - **UI**: [the-internet.herokuapp.com](https://the-internet.herokuapp.com/login) (login form)
 - **Database**: a local MySQL instance (via Docker), seeded with test data
+- **Load testing**: a k6 smoke test against the same `/posts` API
 
 ## Tech stack
 
@@ -22,6 +23,7 @@ It tests these targets:
   severities, and automatic screenshots on UI failures
 - **GitHub Actions** — CI pipeline (MySQL service container, Chrome setup,
   test execution, Allure report publishing with history)
+- **k6** — load testing (JavaScript), with thresholds for latency and error rate
 
 ## Project structure
 
@@ -43,6 +45,7 @@ src/test/java/com/testautomation/
 
 db/init.sql            – schema + seed data, loaded automatically by docker-compose
 docker-compose.yml      – local MySQL container definition
+k6/smoke-test.js        – k6 load testing script against /posts
 .github/workflows/ci.yml – CI pipeline definition
 ```
 
@@ -52,6 +55,7 @@ docker-compose.yml      – local MySQL container definition
 - Maven
 - Docker (for the database tests)
 - Google Chrome (used by Selenide/Selenium for UI tests)
+- [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) (for the load test)
 - Internet access (API and UI tests hit real public endpoints)
 
 ## Running the tests locally
@@ -82,6 +86,16 @@ Stop the database when done:
 docker compose down
 ```
 
+## Running the load test
+
+```bash
+k6 run k6/smoke-test.js
+```
+
+Simulates 5 virtual users hitting `GET /posts/1` for 15 seconds. The run
+fails (non-zero exit code) if the 95th percentile latency exceeds 500ms or
+the error rate exceeds 1% — see `thresholds` in the script.
+
 ## Viewing the Allure report locally
 
 Requires the [Allure CLI](https://allurereport.org/docs/install/) installed separately.
@@ -96,7 +110,7 @@ breakdowns. Failed UI tests include an automatic screenshot and page source.
 
 ## Continuous Integration
 
-Every push to `main` (and every pull request) triggers the workflow in
+Every push to `master` (and every pull request) triggers the workflow in
 `.github/workflows/ci.yml`, which:
 
 1. Starts a MySQL service container and loads the schema/seed data.
@@ -123,6 +137,8 @@ Every push to `main` (and every pull request) triggers the workflow in
   service container.
 - **CI/CD**: a GitHub Actions pipeline running the entire suite on every
   push, with Allure report history accumulated across builds.
+- **Load testing**: a k6 script with configurable virtual users/duration
+  and pass/fail thresholds on latency (p95) and error rate.
 - **Reporting**: Allure annotations (`@Epic`, `@Feature`, `@Story`,
   `@Severity`, `@Description`, `@Step`) and automatic screenshot capture on
   UI test failures via `allure-selenide`.
