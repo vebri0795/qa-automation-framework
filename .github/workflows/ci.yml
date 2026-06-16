@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Spins up a MySQL service container for the duration of this job.
+    # GitHub Actions handles starting/stopping it
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+          MYSQL_DATABASE: testdb
+          MYSQL_USER: testuser
+          MYSQL_PASSWORD: testpass
+        ports:
+          - 3306:3306
+        # Waits for MySQL to actually accept connections before moving on,
+        # not just for the container to "start".
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          install-chromedriver: true
+
+      # The "services" container above starts empty; our db/init.sql only
+      # runs automatically with docker-compose's entrypoint mechanism, so
+      # here we load the schema/seed data manually with the mysql client.
+      - name: Load database schema and seed data
+        run: mysql -h 127.0.0.1 -utestuser -ptestpass testdb < db/init.sql
+
+      - name: Run tests
+        run: mvn clean test
+
+      - name: Load Allure report history
+        uses: actions/checkout@v4
+        if: github.event_name == 'push' && always()
+        #if: always()
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@master
+        if: github.event_name == 'push' && always()
+        #if: always()
+        with:
+          allure_results: target/allure-results
+          allure_history: allure-history
+          gh_pages: gh-pages
+
+      - name: Publish Allure report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.event_name == 'push' && always()
+        #if: always()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-history
