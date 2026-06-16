@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     # Spins up a MySQL service container for the duration of this job.
-    # GitHub Actions handles starting/stopping it
+    # GitHub Actions handles starting/stopping it; this is the CI
+    # equivalent of "docker compose up" for a single service.
     services:
       mysql:
         image: mysql:8.0
@@ -56,18 +57,16 @@ jobs:
         run: mvn clean test
 
       - name: Load Allure report history
-        uses: actions/checkout@v4
         if: github.event_name == 'push' && always()
-        #if: always()
         continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
+        run: |
+          git fetch origin gh-pages --depth=1 2>/dev/null && \
+          git worktree add gh-pages gh-pages || \
+          mkdir -p gh-pages
 
       - name: Generate Allure report
         uses: simple-elf/allure-report-action@master
         if: github.event_name == 'push' && always()
-        #if: always()
         with:
           allure_results: target/allure-results
           allure_history: allure-history
@@ -76,7 +75,7 @@ jobs:
       - name: Publish Allure report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         if: github.event_name == 'push' && always()
-        #if: always()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: allure-history
+          keep_files: false
